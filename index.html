@@ -326,6 +326,24 @@ function renderHeader() {
   }
 }
 
+
+function fechaOrden(x) {
+  if (!x || !x.f) return 0;
+  var f = String(x.f);
+  var m = f.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3])).getTime();
+  m = f.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1])).getTime();
+  return 0;
+}
+
+function ordenarPorFechaYCreacion(a, b) {
+  var fa = fechaOrden(a);
+  var fb = fechaOrden(b);
+  if (fa !== fb) return fa - fb;
+  return (a.id || 0) - (b.id || 0);
+}
+
 function renderGastos() {
   var bus = document.getElementById("busqueda").value.toLowerCase();
   var cat = document.getElementById("filtro-cat").value;
@@ -333,7 +351,7 @@ function renderGastos() {
     var okC = cat==="Todas"||x.c===cat;
     var okB = !bus||x.d.toLowerCase().indexOf(bus)>=0||x.c.toLowerCase().indexOf(bus)>=0;
     return okC&&okB;
-  });
+  }).sort(ordenarPorFechaYCreacion);
   var tg = sumG();
   document.getElementById("g-count").innerHTML = MESES[mesSel]+" "+anoSel+" - "+lista.length+" registros";
   document.getElementById("tot-gastos").innerHTML = "Total: "+fmt(tg);
@@ -357,7 +375,7 @@ function renderGastos() {
 }
 
 function renderIngresos() {
-  var lista = Imes(), ti = sumI();
+  var lista = Imes().sort(ordenarPorFechaYCreacion), ti = sumI();
   document.getElementById("i-count").innerHTML = "Ingresos - "+MESES[mesSel]+" "+anoSel+" - "+lista.length+" registros";
   document.getElementById("tot-ingresos").innerHTML = "Total: "+fmt(ti);
   var h = "";
@@ -573,6 +591,7 @@ function iniciarSincronizacion() {
       data.fbId = documento.id;
       G.push(data);
     });
+    G.sort(ordenarPorFechaYCreacion);
     renderAll();
   });
 
@@ -583,6 +602,7 @@ function iniciarSincronizacion() {
       data.fbId = documento.id;
       I.push(data);
     });
+    I.sort(ordenarPorFechaYCreacion);
     renderAll();
   });
 }
