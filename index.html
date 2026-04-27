@@ -337,13 +337,24 @@ function fechaOrden(x) {
   return 0;
 }
 
+function fechaMostrar(f) {
+  if (!f) return "";
+  f = String(f);
+  var m = f.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return m[3] + "/" + m[2] + "/" + m[1];
+  return f;
+}
+
+function marcaCreacion(x) {
+  return Number(x.creado || x.createdAt || x.id || 0);
+}
+
 function ordenarPorFechaYCreacion(a, b) {
   var fa = fechaOrden(a);
   var fb = fechaOrden(b);
   if (fa !== fb) return fa - fb;
-  return (a.id || 0) - (b.id || 0);
+  return marcaCreacion(a) - marcaCreacion(b);
 }
-
 function renderGastos() {
   var bus = document.getElementById("busqueda").value.toLowerCase();
   var cat = document.getElementById("filtro-cat").value;
@@ -363,7 +374,7 @@ function renderGastos() {
     h+='<div class="item-row">';
     h+='<div class="dot" style="background:'+col+'"></div>';
     h+='<div class="info"><div class="desc">'+x.d+'<span class="badge" style="background:'+bc+'">'+x.b+'</span></div>';
-    h+='<div class="sub">'+x.c+' - <span style="color:'+nc+'">'+x.t+'</span>'+(x.f?" - "+x.f:"")+'</div></div>';
+    h+='<div class="sub">'+x.c+' - <span style="color:'+nc+'">'+x.t+'</span>'+(x.f?" - "+fechaMostrar(x.f):"")+'</div></div>';
     h+='<div class="amt" style="color:#f43f5e">'+fmt(x.m)+'</div>';
     h+='<button class="del" onclick="delG('+x.id+')">&#215;</button>';
     h+='</div>';
@@ -383,7 +394,7 @@ function renderIngresos() {
     var x=lista[i], col=COL[x.c]||"#10b981";
     h+='<div class="item item-ing"><div class="item-row">';
     h+='<div class="dot" style="background:'+col+'"></div>';
-    h+='<div class="info"><div class="desc">'+x.d+'</div><div class="sub">'+x.c+' - '+x.me+'</div></div>';
+    h+='<div class="info"><div class="desc">'+x.d+'</div><div class="sub">'+x.c+' - '+x.me+(x.f?' - '+fechaMostrar(x.f):'')+'</div></div>';
     h+='<div class="amt" style="color:#10b981">+'+fmt(x.m)+'</div>';
     h+='<button class="del" onclick="delI('+x.id+')">&#215;</button>';
     h+='</div></div>';
@@ -458,6 +469,7 @@ async function addG() {
 
   var nuevo = {
     id: Date.now(),
+    creado: Date.now(),
     mes: mesSel,
     ano: anoSel,
     f: document.getElementById("gf").value,
@@ -487,6 +499,7 @@ async function addI() {
 
   var nuevo = {
     id: Date.now(),
+    creado: Date.now(),
     mes: mesSel,
     ano: anoSel,
     f: document.getElementById("if2").value,
