@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Gastos</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #f1f5f9; padding: 14px; }
+.header { background: linear-gradient(135deg,#6366f1,#8b5cf6); border-radius: 14px; padding: 16px; margin-bottom: 12px; color: #fff; }
+.header h1 { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+.kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 10px; }
+.kpi { background: rgba(255,255,255,0.15); border-radius: 10px; padding: 8px; text-align: center; }
+.kpi-label { font-size: 10px; opacity: 0.85; }
+.kpi-val { font-size: 13px; font-weight: 700; }
+.bancos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.banco-box { background: rgba(255,255,255,0.15); border-radius: 10px; padding: 8px 10px; }
+.banco-name { font-size: 10px; font-weight: 700; margin-bottom: 3px; }
+.banco-desc { font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.banco-fecha { font-size: 10px; color: rgba(255,255,255,0.7); }
+.hdr-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.hdr-controls { display: flex; gap: 6px; flex-wrap: wrap; }
+.hdr-select { border-radius: 8px; border: none; padding: 5px 8px; font-size: 12px; background: rgba(255,255,255,0.2); color: #fff; }
+.hdr-select option { color: #1e293b; }
+.btn-csv { border-radius: 8px; border: none; padding: 5px 10px; font-size: 12px; background: rgba(255,255,255,0.2); color: #fff; cursor: pointer; font-weight: 600; }
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tab { flex: 1; padding: 8px 0; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; font-size: 11px; background: #fff; color: #64748b; }
+.tab.active { background: #6366f1; color: #fff; }
+.card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+.card-title { font-weight: 700; color: #1e293b; margin-bottom: 10px; font-size: 14px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.span2 { grid-column: span 2; }
+input, select { padding: 8px 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; background: #f8fafc; color: #1e293b; width: 100%; }
+.btn { width: 100%; padding: 10px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; color: #fff; margin-top: 4px; }
+.btn-p { background: #6366f1; }
+.btn-g { background: #10b981; }
+.item { padding: 9px 10px; border-radius: 9px; border: 1px solid #e2e8f0; margin-bottom: 6px; background: #f8fafc; }
+.item-ing { background: #f0fdf4; border-color: #d1fae5; }
+.item-row { display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.info { flex: 1; min-width: 0; }
+.desc { font-weight: 600; font-size: 13px; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { font-size: 11px; color: #94a3b8; }
+.amt { font-weight: 700; font-size: 13px; flex-shrink: 0; }
+.del { background: none; border: none; cursor: pointer; color: #cbd5e1; font-size: 20px; padding: 0; line-height: 1; }
+.tot { text-align: right; font-weight: 700; color: #1e293b; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 14px; margin-top: 4px; }
+.tot-i { color: #10b981; border-top-color: #d1fae5; }
+.badge { font-size: 10px; font-weight: 700; color: #fff; border-radius: 4px; padding: 1px 5px; margin-left: 4px; }
+.note { font-size: 11px; color: #64748b; margin-top: 3px; padding-left: 16px; font-style: italic; }
+.ult { font-size: 11px; color: #3b82f6; margin-top: 3px; padding-left: 16px; }
+.rrow { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+.bwrap { background: #f1f5f9; border-radius: 6px; height: 7px; overflow: hidden; margin-top: 3px; }
+.bar { height: 100%; border-radius: 6px; }
+.evol-block { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9; }
+.hidden { display: none; }
+.filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.count { font-weight: 600; font-size: 13px; color: #64748b; margin-bottom: 8px; }
+
+.auth-locked > .header,
+.auth-locked > .tabs,
+.auth-locked > #tab-gastos,
+.auth-locked > #tab-ingresos,
+.auth-locked > #tab-resumen,
+.auth-locked > #tab-evolucion { display: none !important; }
+.login-screen { position: fixed; inset: 0; z-index: 9999; background: linear-gradient(135deg,#111827,#312e81); display:flex; align-items:center; justify-content:center; padding:20px; color:#fff; }
+.login-card { width:100%; max-width:360px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); border-radius:18px; padding:22px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+.login-card h2 { font-size:22px; margin-bottom:8px; }
+.login-card p { font-size:13px; opacity:.85; margin-bottom:18px; line-height:1.4; }
+.login-btn { width:100%; border:0; border-radius:12px; padding:12px 14px; background:#fff; color:#1e293b; font-weight:800; cursor:pointer; font-size:14px; }
+.login-error { margin-top:12px; color:#fecaca; font-size:12px; min-height:16px; }
+.user-bar { display:flex; align-items:center; gap:8px; justify-content:flex-end; margin-bottom:10px; font-size:11px; color:#64748b; }
+.user-bar button { border:0; border-radius:8px; padding:6px 9px; background:#e2e8f0; color:#334155; font-weight:700; cursor:pointer; font-size:11px; }
+
+</style>
+</head>
+<body class="auth-locked">
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <h2>Control de Gastos</h2>
+    <p>Acceso privado. Entra con tu cuenta de Google para ver y sincronizar tus datos.</p>
+    <button class="login-btn" id="login-google">Entrar con Google</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div class="user-bar" id="user-bar" style="display:none">
+  <span id="user-email"></span>
+  <button id="logout-btn">Salir</button>
+</div>
+
+
+<div class="header">
+  <div class="hdr-top">
+    <div style="font-size:17px;font-weight:700">Control de Gastos</div>
+    <div class="hdr-controls">
+      <select class="hdr-select" id="sel-mes" onchange="cambiarMes()"></select>
+      <select class="hdr-select" id="sel-ano" onchange="cambiarAno()"></select>
+      <button class="btn-csv" onclick="exportCSV()">CSV</button>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-label">Ingresos</div><div class="kpi-val" id="k-ing" style="color:#a5f3fc">0,00 &euro;</div></div>
+    <div class="kpi"><div class="kpi-label">Gastos</div><div class="kpi-val" id="k-gas" style="color:#fca5a5">0,00 &euro;</div></div>
+    <div class="kpi"><div class="kpi-label">Balance</div><div class="kpi-val" id="k-bal">0,00 &euro;</div></div>
+  </div>
+  <div class="bancos" style="margin-top:10px">
+    <div class="banco-box"><div class="banco-name" style="color:#93c5fd">Caixabank</div><div id="ult-caixa-desc" class="banco-desc" style="color:rgba(255,255,255,0.5)">Sin registros</div><div id="ult-caixa-fecha" class="banco-fecha"></div></div>
+    <div class="banco-box"><div class="banco-name" style="color:#bbf7d0">Trade Republic</div><div id="ult-trade-desc" class="banco-desc" style="color:rgba(255,255,255,0.5)">Sin registros</div><div id="ult-trade-fecha" class="banco-fecha"></div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="btn-gastos" onclick="showTab('gastos')">Gastos</button>
+  <button class="tab" id="btn-ingresos" onclick="showTab('ingresos')">Ingresos</button>
+  <button class="tab" id="btn-resumen" onclick="showTab('resumen')">Resumen</button>
+  <button class="tab" id="btn-evolucion" onclick="showTab('evolucion')">Evolucion</button>
+</div>
+
+<!-- GASTOS -->
+<div id="tab-gastos">
+  <div class="card">
+    <div class="card-title">Anadir Gasto</div>
+    <div class="grid2">
+      <input id="gf" type="date" min="2026-01-01" max="2050-12-31">
+      <input id="gm" type="number" placeholder="Monto (EUR)">
+      <select id="gc"></select>
+      <select id="gme">
+        <option>Tarjeta</option><option>Transferencia</option><option>Efectivo</option><option>PayPal</option><option>Bizum</option><option>Domiciliacion</option><option>Otro</option>
+      </select>
+      <input id="gd" placeholder="Descripcion" class="span2">
+      <select id="gt"><option>Necesario</option><option>Opcional</option></select>
+      <select id="gb"><option>Caixabank</option><option>Trade Republic</option></select>
+
+    </div>
+    <button class="btn btn-p" onclick="addG()">Anadir Gasto</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Filtrar gastos</div>
+    <div class="filter-row">
+      <input id="busqueda" placeholder="Buscar..." oninput="renderGastos()">
+      <select id="filtro-cat" onchange="renderGastos()"><option>Todas</option></select>
+    </div>
+    <div class="count" id="g-count"></div>
+    <div id="lista-gastos"></div>
+    <div class="tot" id="tot-gastos"></div>
+  </div>
+</div>
+
+<!-- INGRESOS -->
+<div id="tab-ingresos" class="hidden">
+  <div class="card">
+    <div class="card-title">Anadir Ingreso</div>
+    <div class="grid2">
+      <input id="if2" type="date" min="2026-01-01" max="2050-12-31">
+      <input id="im" type="number" placeholder="Monto (EUR)">
+      <select id="ic"></select>
+      <select id="ime">
+        <option>Tarjeta</option><option>Transferencia</option><option>Efectivo</option><option>PayPal</option><option>Bizum</option><option>Otro</option>
+      </select>
+      <input id="id2" placeholder="Descripcion" class="span2">
+    </div>
+    <button class="btn btn-g" onclick="addI()">Anadir Ingreso</button>
+  </div>
+  <div class="card">
+    <div class="card-title" id="i-count"></div>
+    <div id="lista-ingresos"></div>
+    <div class="tot tot-i" id="tot-ingresos"></div>
+  </div>
+</div>
+
+<!-- RESUMEN -->
+<div id="tab-resumen" class="hidden">
+  <div class="card">
+    <div class="card-title" id="res-title"></div>
+    <div id="res-rows"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Por Categoria</div>
+    <div id="res-cats"></div>
+  </div>
+</div>
+
+<!-- EVOLUCION -->
+<div id="tab-evolucion" class="hidden">
+  <div class="card">
+    <div class="card-title">Evolucion mensual</div>
+    <div id="evol"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCdkSPsyyKCwtj5pE3-3RpuHBN-ZUPYc7s",
+  authDomain: "gastos-2b7aa.firebaseapp.com",
+  projectId: "gastos-2b7aa",
+  storageBucket: "gastos-2b7aa.firebasestorage.app",
+  messagingSenderId: "620361615785",
+  appId: "1:620361615785:web:3ae79f9260f47239629cb8"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+let currentUser = null;
+let unsubscribeGastos = null;
+let unsubscribeIngresos = null;
+
+function gastosCol() { return collection(db, "users", currentUser.uid, "gastos"); }
+function ingresosCol() { return collection(db, "users", currentUser.uid, "ingresos"); }
+var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+var CATS_G = ["Vivienda","Servicios","Transporte","Alimentacion","Ropa","Entretenimiento","Entretenimiento con Ninos","Educacion","Salud","Inversiones","Cuenta Comun Ninos","Otros"];
+var CATS_I = ["Salario","Freelance","Ventas","Comisiones","Bonos","Otros"];
+var COL = {Vivienda:"#8b5cf6",Servicios:"#06b6d4",Transporte:"#3b82f6",Alimentacion:"#f59e0b",Ropa:"#ec4899",Entretenimiento:"#f97316",Educacion:"#10b981",Salud:"#ef4444",Inversiones:"#22c55e","Cuenta Comun Ninos":"#f43f5e",Otros:"#94a3b8",Salario:"#10b981",Bonos:"#f97316",Freelance:"#3b82f6"};
+
+var mesSel = 3, anoSel = 2026;
+
+var G = [
+  {id:1,mes:3,ano:2026,f:"21/04/2026",c:"Vivienda",d:"Prestamo Mensual",m:0,me:"Transferencia",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:2,mes:3,ano:2026,f:"21/04/2026",c:"Vivienda",d:"Cosas para Casa",m:90.98,me:"Tarjeta",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:3,mes:3,ano:2026,f:"21/04/2026",c:"Servicios",d:"Luz mensual",m:0,me:"",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:4,mes:3,ano:2026,f:"21/04/2026",c:"Servicios",d:"Agua",m:0,me:"",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:5,mes:3,ano:2026,f:"21/04/2026",c:"Servicios",d:"Internet y Movil",m:41,me:"Tarjeta",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:6,mes:3,ano:2026,f:"21/04/2026",c:"Transporte",d:"KIA Seguro",m:0,me:"Tarjeta",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:7,mes:3,ano:2026,f:"21/04/2026",c:"Transporte",d:"Gasolina y Mantenimiento",m:43,me:"Tarjeta",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:8,mes:3,ano:2026,f:"21/04/2026",c:"Ropa",d:"Ropa para mi",m:69.16,me:"Transferencia",t:"Opcional",n:"",b:"Caixabank",ult:""},
+  {id:9,mes:3,ano:2026,f:"21/04/2026",c:"Alimentacion",d:"Compra semanal",m:25.44,me:"Tarjeta",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:10,mes:3,ano:2026,f:"21/04/2026",c:"Entretenimiento",d:"Fiesta comidas y cenas",m:94.40,me:"Efectivo",t:"Opcional",n:"",b:"Caixabank",ult:""},
+  {id:11,mes:3,ano:2026,f:"21/04/2026",c:"Educacion",d:"Gastos hijos compartidos",m:1110,me:"Transferencia",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:12,mes:3,ano:2026,f:"21/04/2026",c:"Ropa",d:"Compras Online y suscripciones",m:48.44,me:"Tarjeta",t:"Opcional",n:"",b:"Trade Republic",ult:""},
+  {id:13,mes:3,ano:2026,f:"21/04/2026",c:"Inversiones",d:"Inversiones",m:60,me:"Tarjeta",t:"Opcional",n:"",b:"Trade Republic",ult:""},
+  {id:14,mes:3,ano:2026,f:"21/04/2026",c:"Salud",d:"Tabaco",m:0,me:"",t:"Opcional",n:"",b:"Caixabank",ult:""},
+  {id:15,mes:3,ano:2026,f:"21/04/2026",c:"Entretenimiento",d:"Ocio con ninos",m:40.60,me:"Tarjeta",t:"Necesario",n:"",b:"Caixabank",ult:""},
+  {id:16,mes:3,ano:2026,f:"21/04/2026",c:"Salud",d:"Cosas Gimnasio",m:80.17,me:"Tarjeta",t:"Opcional",n:"",b:"Caixabank",ult:""},
+  {id:17,mes:3,ano:2026,f:"21/04/2026",c:"Educacion",d:"Clases logopeda",m:35,me:"Transferencia",t:"Necesario",n:"",b:"Caixabank",ult:""}
+];
+var I = [
+  {id:1,mes:3,ano:2026,f:"30/04/2026",c:"Salario",d:"Pago mensual empresa",m:1564.42,me:"Transferencia"},
+  {id:2,mes:3,ano:2026,f:"",c:"Bonos",d:"Devolucion Hacienda",m:425.45,me:"Transferencia"}
+];
+
+function fmt(n) {
+  return parseFloat(n||0).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}) + " \u20AC";
+}
+
+function initSelects() {
+  var sm = document.getElementById("sel-mes");
+  for (var i = 0; i < 12; i++) {
+    var o = document.createElement("option");
+    o.value = i; o.text = MESES[i];
+    if (i === mesSel) o.selected = true;
+    sm.appendChild(o);
+  }
+  var sa = document.getElementById("sel-ano");
+  for (var y = 2026; y <= 2050; y++) {
+    var o2 = document.createElement("option");
+    o2.value = y; o2.text = y;
+    if (y === anoSel) o2.selected = true;
+    sa.appendChild(o2);
+  }
+  var gc = document.getElementById("gc");
+  for (var j = 0; j < CATS_G.length; j++) {
+    var o3 = document.createElement("option"); o3.text = CATS_G[j]; gc.appendChild(o3);
+  }
+  var ic = document.getElementById("ic");
+  for (var k = 0; k < CATS_I.length; k++) {
+    var o4 = document.createElement("option"); o4.text = CATS_I[k]; ic.appendChild(o4);
+  }
+  var fc = document.getElementById("filtro-cat");
+  for (var l = 0; l < CATS_G.length; l++) {
+    var o5 = document.createElement("option"); o5.text = CATS_G[l]; fc.appendChild(o5);
+  }
+}
+
+function cambiarMes() { mesSel = parseInt(document.getElementById("sel-mes").value); renderAll(); }
+function cambiarAno() { anoSel = parseInt(document.getElementById("sel-ano").value); renderAll(); }
+
+function showTab(t) {
+  var tabs = ["gastos","ingresos","resumen","evolucion"];
+  for (var i = 0; i < tabs.length; i++) {
+    document.getElementById("tab-"+tabs[i]).className = tabs[i]===t ? "" : "hidden";
+    document.getElementById("btn-"+tabs[i]).className = tabs[i]===t ? "tab active" : "tab";
+  }
+  if (t==="resumen") renderResumen();
+  if (t==="evolucion") renderEvolucion();
+}
+
+function Gmes() { return G.filter(function(x){return x.mes===mesSel&&x.ano===anoSel;}); }
+function Imes() { return I.filter(function(x){return x.mes===mesSel&&x.ano===anoSel;}); }
+function sumG() { return Gmes().reduce(function(s,x){return s+x.m;},0); }
+function sumI() { return Imes().reduce(function(s,x){return s+x.m;},0); }
+
+function renderHeader() {
+  var tg=sumG(), ti=sumI(), bal=ti-tg;
+  document.getElementById("k-ing").innerHTML = fmt(ti);
+  document.getElementById("k-gas").innerHTML = fmt(tg);
+  document.getElementById("k-bal").innerHTML = fmt(bal);
+  document.getElementById("k-bal").style.color = bal>=0?"#bbf7d0":"#fde68a";
+
+  var ultC = null, ultT = null;
+  for (var i=0;i<G.length;i++){
+    if (G[i].b==="Caixabank"&&G[i].ult){if(!ultC||G[i].ult>ultC.ult){ultC=G[i];}}
+    if (G[i].b==="Trade Republic"&&G[i].ult){if(!ultT||G[i].ult>ultT.ult){ultT=G[i];}}
+  }
+  if (ultC) {
+    document.getElementById("ult-caixa-desc").innerHTML = ultC.d;
+    document.getElementById("ult-caixa-desc").style.color = "#fff";
+    document.getElementById("ult-caixa-fecha").innerHTML = "Fecha: "+ultC.ult;
+  } else {
+    document.getElementById("ult-caixa-desc").innerHTML = "Sin registros";
+    document.getElementById("ult-caixa-desc").style.color = "rgba(255,255,255,0.5)";
+    document.getElementById("ult-caixa-fecha").innerHTML = "";
+  }
+  if (ultT) {
+    document.getElementById("ult-trade-desc").innerHTML = ultT.d;
+    document.getElementById("ult-trade-desc").style.color = "#fff";
+    document.getElementById("ult-trade-fecha").innerHTML = "Fecha: "+ultT.ult;
+  } else {
+    document.getElementById("ult-trade-desc").innerHTML = "Sin registros";
+    document.getElementById("ult-trade-desc").style.color = "rgba(255,255,255,0.5)";
+    document.getElementById("ult-trade-fecha").innerHTML = "";
+  }
+}
+
+function renderGastos() {
+  var bus = document.getElementById("busqueda").value.toLowerCase();
+  var cat = document.getElementById("filtro-cat").value;
+  var lista = Gmes().filter(function(x){
+    var okC = cat==="Todas"||x.c===cat;
+    var okB = !bus||x.d.toLowerCase().indexOf(bus)>=0||x.c.toLowerCase().indexOf(bus)>=0;
+    return okC&&okB;
+  });
+  var tg = sumG();
+  document.getElementById("g-count").innerHTML = MESES[mesSel]+" "+anoSel+" - "+lista.length+" registros";
+  document.getElementById("tot-gastos").innerHTML = "Total: "+fmt(tg);
+  var h = "";
+  for (var i=0;i<lista.length;i++) {
+    var x=lista[i], col=COL[x.c]||"#94a3b8", nc=x.t==="Necesario"?"#10b981":"#f97316";
+    var bc=x.b==="Caixabank"?"#0066cc":"#22c55e";
+    h+='<div class="item">';
+    h+='<div class="item-row">';
+    h+='<div class="dot" style="background:'+col+'"></div>';
+    h+='<div class="info"><div class="desc">'+x.d+'<span class="badge" style="background:'+bc+'">'+x.b+'</span></div>';
+    h+='<div class="sub">'+x.c+' - <span style="color:'+nc+'">'+x.t+'</span>'+(x.f?" - "+x.f:"")+'</div></div>';
+    h+='<div class="amt" style="color:#f43f5e">'+fmt(x.m)+'</div>';
+    h+='<button class="del" onclick="delG('+x.id+')">&#215;</button>';
+    h+='</div>';
+    if (x.ult) { h+='<div class="ult">Ultimo gasto '+x.b+': '+x.ult+'</div>'; }
+    if (x.n) { h+='<div class="note">Nota: '+x.n+'</div>'; }
+    h+='</div>';
+  }
+  document.getElementById("lista-gastos").innerHTML = h;
+}
+
+function renderIngresos() {
+  var lista = Imes(), ti = sumI();
+  document.getElementById("i-count").innerHTML = "Ingresos - "+MESES[mesSel]+" "+anoSel+" - "+lista.length+" registros";
+  document.getElementById("tot-ingresos").innerHTML = "Total: "+fmt(ti);
+  var h = "";
+  for (var i=0;i<lista.length;i++) {
+    var x=lista[i], col=COL[x.c]||"#10b981";
+    h+='<div class="item item-ing"><div class="item-row">';
+    h+='<div class="dot" style="background:'+col+'"></div>';
+    h+='<div class="info"><div class="desc">'+x.d+'</div><div class="sub">'+x.c+' - '+x.me+'</div></div>';
+    h+='<div class="amt" style="color:#10b981">+'+fmt(x.m)+'</div>';
+    h+='<button class="del" onclick="delI('+x.id+')">&#215;</button>';
+    h+='</div></div>';
+  }
+  document.getElementById("lista-ingresos").innerHTML = h;
+}
+
+function renderResumen() {
+  var tg=sumG(), ti=sumI(), bal=ti-tg;
+  var nec=0, opt=0;
+  var gm = Gmes();
+  for (var i=0;i<gm.length;i++){if(gm[i].t==="Necesario"){nec+=gm[i].m;}else{opt+=gm[i].m;}}
+  document.getElementById("res-title").innerHTML = "Resumen - "+MESES[mesSel]+" "+anoSel;
+  var rows=[["Ingresos",fmt(ti),"#10b981"],["Gastos",fmt(tg),"#f43f5e"],["Necesarios",fmt(nec),"#6366f1"],["Opcionales",fmt(opt),"#f97316"],["Balance",fmt(bal),bal>=0?"#10b981":"#f43f5e"],["Tasa ahorro",ti?((bal/ti)*100).toFixed(1)+"%":"-","#8b5cf6"]];
+  var h="";
+  for (var i=0;i<rows.length;i++){h+='<div class="rrow"><span style="color:#64748b">'+rows[i][0]+'</span><span style="font-weight:700;color:'+rows[i][2]+'">'+rows[i][1]+'</span></div>';}
+  document.getElementById("res-rows").innerHTML = h;
+
+  var cats={};
+  for (var j=0;j<gm.length;j++){cats[gm[j].c]=(cats[gm[j].c]||0)+gm[j].m;}
+  var keys=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];});
+  h="";
+  for (var k=0;k<keys.length;k++){
+    var cat=keys[k], tot=cats[cat], pct=tg?((tot/tg)*100).toFixed(1):0, col=COL[cat]||"#94a3b8";
+    h+='<div style="margin-bottom:10px">';
+    h+='<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">';
+    h+='<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+col+';margin-right:5px"></span><b>'+cat+'</b></span>';
+    h+='<span style="font-weight:600">'+fmt(tot)+' <span style="color:#94a3b8;font-weight:400">('+pct+'%)</span></span></div>';
+    h+='<div class="bwrap"><div class="bar" style="width:'+(tg?(tot/tg)*100:0)+'%;background:'+col+'"></div></div></div>';
+  }
+  document.getElementById("res-cats").innerHTML = h;
+}
+
+function renderEvolucion() {
+  var seen={}, meses=[];
+  for (var i=0;i<G.length;i++){var k=G[i].ano+"-"+G[i].mes;if(!seen[k]){seen[k]=1;meses.push({mes:G[i].mes,ano:G[i].ano});}}
+  for (var j=0;j<I.length;j++){var k2=I[j].ano+"-"+I[j].mes;if(!seen[k2]){seen[k2]=1;meses.push({mes:I[j].mes,ano:I[j].ano});}}
+  meses.sort(function(a,b){return a.ano!==b.ano?a.ano-b.ano:a.mes-b.mes;});
+  var evol=[];
+  for (var m=0;m<meses.length;m++){
+    var mm=meses[m];
+    var tgi=0,tii=0;
+    for (var gi=0;gi<G.length;gi++){if(G[gi].mes===mm.mes&&G[gi].ano===mm.ano){tgi+=G[gi].m;}}
+    for (var ii=0;ii<I.length;ii++){if(I[ii].mes===mm.mes&&I[ii].ano===mm.ano){tii+=I[ii].m;}}
+    evol.push({label:MESES[mm.mes].substring(0,3)+" "+mm.ano,tg:tgi,ti:tii,bal:tii-tgi});
+  }
+  var max=0;
+  for (var e=0;e<evol.length;e++){if(evol[e].ti>max){max=evol[e].ti;}if(evol[e].tg>max){max=evol[e].tg;}}
+  if (!max) max=1;
+  var h="";
+  if (!evol.length) { h='<div style="text-align:center;color:#94a3b8;padding:20px">Sin datos aun.</div>'; }
+  for (var v=0;v<evol.length;v++){
+    var ev=evol[v];
+    h+='<div class="evol-block">';
+    h+='<div style="font-weight:600;font-size:13px;color:#1e293b;margin-bottom:6px">'+ev.label+'</div>';
+    h+='<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px"><span>Ingresos</span><span>'+fmt(ev.ti)+'</span></div>';
+    h+='<div class="bwrap"><div class="bar" style="width:'+(ev.ti/max*100)+'%;background:#10b981"></div></div></div>';
+    h+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px"><span>Gastos</span><span>'+fmt(ev.tg)+'</span></div>';
+    h+='<div class="bwrap"><div class="bar" style="width:'+(ev.tg/max*100)+'%;background:#f43f5e"></div></div></div>';
+    h+='<div style="font-size:12px;font-weight:700;color:'+(ev.bal>=0?"#10b981":"#f43f5e")+';margin-top:6px;text-align:right">Balance: '+fmt(ev.bal)+'</div>';
+    h+='</div>';
+  }
+  document.getElementById("evol").innerHTML = h;
+}
+
+function renderAll() { renderHeader(); renderGastos(); renderIngresos(); }
+
+async function addG() {
+  if (!currentUser) return alert("Inicia sesion primero");
+  var d=document.getElementById("gd").value;
+  if (!d) return;
+
+  var nuevo = {
+    id: Date.now(),
+    mes: mesSel,
+    ano: anoSel,
+    f: document.getElementById("gf").value,
+    c: document.getElementById("gc").value,
+    d: d,
+    m: parseFloat(document.getElementById("gm").value)||0,
+    me: document.getElementById("gme").value,
+    t: document.getElementById("gt").value,
+    n: "",
+    b: document.getElementById("gb").value,
+    ult: ""
+  };
+
+  var ref = await addDoc(gastosCol(), nuevo);
+  nuevo.fbId = ref.id;
+
+  document.getElementById("gd").value="";
+  document.getElementById("gm").value="";
+  document.getElementById("gf").value="";
+}
+
+
+async function addI() {
+  if (!currentUser) return alert("Inicia sesion primero");
+  var d=document.getElementById("id2").value;
+  if (!d) return;
+
+  var nuevo = {
+    id: Date.now(),
+    mes: mesSel,
+    ano: anoSel,
+    f: document.getElementById("if2").value,
+    c: document.getElementById("ic").value,
+    d: d,
+    m: parseFloat(document.getElementById("im").value)||0,
+    me: document.getElementById("ime").value
+  };
+
+  var ref = await addDoc(ingresosCol(), nuevo);
+  nuevo.fbId = ref.id;
+
+  document.getElementById("id2").value="";
+  document.getElementById("im").value="";
+  document.getElementById("if2").value="";
+}
+
+
+async function delG(id) {
+  if (!currentUser) return alert("Inicia sesion primero");
+  var item = G.find(function(x){ return x.id===id; });
+  if (item && item.fbId) {
+    await deleteDoc(doc(db, "users", currentUser.uid, "gastos", item.fbId));
+  } else {
+    G = G.filter(function(x){ return x.id!==id; });
+    renderAll();
+  }
+}
+
+async function delI(id) {
+  if (!currentUser) return alert("Inicia sesion primero");
+  var item = I.find(function(x){ return x.id===id; });
+  if (item && item.fbId) {
+    await deleteDoc(doc(db, "users", currentUser.uid, "ingresos", item.fbId));
+  } else {
+    I = I.filter(function(x){ return x.id!==id; });
+    renderAll();
+  }
+}
+
+
+function exportCSV() {
+  var gm=Gmes(), im=Imes();
+  var rows=["Fecha,Categoria,Descripcion,Monto,Metodo,Tipo,Banco,Ultimo acceso,Notas"];
+  for(var i=0;i<gm.length;i++){rows.push([gm[i].f,gm[i].c,gm[i].d,gm[i].m,gm[i].me,gm[i].t,gm[i].b,gm[i].ult,gm[i].n].join(","));}
+  rows.push("","Fecha,Categoria,Descripcion,Monto,Metodo");
+  for(var j=0;j<im.length;j++){rows.push([im[j].f,im[j].c,im[j].d,im[j].m,im[j].me].join(","));}
+  var blob=new Blob([rows.join("\n")],{type:"text/csv"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url; a.download="gastos_"+MESES[mesSel]+"_"+anoSel+".csv"; a.click();
+}
+
+async function guardar() {
+  // Firebase guarda cada gasto/ingreso al anadirlo.
+}
+
+
+async function cargarFirestore() {
+  if (!currentUser) return;
+  try {
+    var gastosSnap = await getDocs(gastosCol());
+    var ingresosSnap = await getDocs(ingresosCol());
+
+    if (gastosSnap.empty && ingresosSnap.empty) {
+      var datosLocales = null;
+      try {
+        var d = localStorage.getItem("gastos_app");
+        if (d) datosLocales = JSON.parse(d);
+      } catch(e) {}
+
+      var gastosIniciales = datosLocales && datosLocales.G ? datosLocales.G : G;
+      var ingresosIniciales = datosLocales && datosLocales.I ? datosLocales.I : I;
+
+      for (var g=0; g<gastosIniciales.length; g++) {
+        var gasto = Object.assign({}, gastosIniciales[g]);
+        delete gasto.fbId;
+        await addDoc(gastosCol(), gasto);
+      }
+      for (var i=0; i<ingresosIniciales.length; i++) {
+        var ingreso = Object.assign({}, ingresosIniciales[i]);
+        delete ingreso.fbId;
+        await addDoc(ingresosCol(), ingreso);
+      }
+    }
+
+    iniciarSincronizacion();
+  } catch(e) {
+    console.error("Error cargando Firebase", e);
+    alert("No se pudo conectar con Firebase. Revisa Firestore y sus reglas.");
+    renderAll();
+  }
+}
+
+function iniciarSincronizacion() {
+  if (unsubscribeGastos) unsubscribeGastos();
+  if (unsubscribeIngresos) unsubscribeIngresos();
+  unsubscribeGastos = onSnapshot(gastosCol(), function(snapshot) {
+    G = [];
+    snapshot.forEach(function(documento) {
+      var data = documento.data();
+      data.fbId = documento.id;
+      G.push(data);
+    });
+    renderAll();
+  });
+
+  unsubscribeIngresos = onSnapshot(ingresosCol(), function(snapshot) {
+    I = [];
+    snapshot.forEach(function(documento) {
+      var data = documento.data();
+      data.fbId = documento.id;
+      I.push(data);
+    });
+    renderAll();
+  });
+}
+
+
+initSelects();
+renderAll();
+
+document.getElementById("login-google").addEventListener("click", async function() {
+  document.getElementById("login-error").innerHTML = "";
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    console.error("Error de login", e);
+    document.getElementById("login-error").innerHTML = "No se pudo iniciar sesion. Revisa que Google este activado en Firebase Authentication.";
+  }
+});
+
+document.getElementById("logout-btn").addEventListener("click", async function() {
+  await signOut(auth);
+});
+
+onAuthStateChanged(auth, function(user) {
+  if (user) {
+    currentUser = user;
+    document.body.classList.remove("auth-locked");
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("user-bar").style.display = "flex";
+    document.getElementById("user-email").innerHTML = user.email || "Sesion iniciada";
+    cargarFirestore();
+  } else {
+    currentUser = null;
+    G = [];
+    I = [];
+    if (unsubscribeGastos) { unsubscribeGastos(); unsubscribeGastos = null; }
+    if (unsubscribeIngresos) { unsubscribeIngresos(); unsubscribeIngresos = null; }
+    renderAll();
+    document.body.classList.add("auth-locked");
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("user-bar").style.display = "none";
+  }
+});
+
+window.cambiarMes = cambiarMes;
+window.cambiarAno = cambiarAno;
+window.showTab = showTab;
+window.renderGastos = renderGastos;
+window.addG = addG;
+window.addI = addI;
+window.delG = delG;
+window.delI = delI;
+window.exportCSV = exportCSV;
+</script>
+</body>
+</html>
